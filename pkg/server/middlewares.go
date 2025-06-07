@@ -15,6 +15,7 @@ import (
 
 	"github.com/italypaleale/traefik-forward-auth/pkg/config"
 	"github.com/italypaleale/traefik-forward-auth/pkg/utils"
+	"github.com/italypaleale/traefik-forward-auth/pkg/utils/validators"
 )
 
 var proxyHeaders = []string{
@@ -82,6 +83,69 @@ func (s *Server) MiddlewareProxyHeaders(c *gin.Context) {
 	if !hostHeaderRe.MatchString(c.Request.Header.Get("X-Forwarded-Host")) {
 		AbortWithError(c, NewResponseError(http.StatusBadRequest, "Invalid value for the 'X-Forwarded-Host' header"))
 		return
+	}
+}
+
+// MiddlewareWildcards is a middleware that replaces wildcard characters in the hostname & cookieDomain with values from headers.
+func (s *Server) MiddlewareWildcards(c *gin.Context) {
+	conf := config.Get()
+
+	if strings.Contains(conf.Hostname, "*") {
+		var xHostname string
+		if validators.IsIP(conf.Hostname) {
+			// Get IP
+			xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
+			clientIP, _, _ := strings.Cut(xForwardedFor, ",")
+			xHostname = strings.TrimSpace(clientIP)
+		} else {
+			// Get FQDN
+			xForwardedHost := c.Request.Header.Get("X-Forwarded-Host")
+			clientFQDN, _, _ := strings.Cut(xForwardedHost, ",")
+			xHostname = strings.TrimSpace(clientFQDN)
+		}
+
+		_, port, err := net.SplitHostPort(conf.Hostname)
+		if err != nil && port != "" {
+			// Get port
+			xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
+			xHostname = net.JoinHostPort(xHostname, xForwardedPort)
+		}
+
+		hostname := utils.ReplaceWildcards(conf.Hostname, xHostname)
+
+		log := utils.LogFromContext(c)
+		log.Info("Rewrote hostname '%s' -> '%s'", conf.Hostname, hostname)
+
+		conf.Hostname = hostname
+	}
+
+	if strings.Contains(conf.CookieDomain, "*") {
+		var xCookieDomain string
+		if validators.IsIP(conf.CookieDomain) {
+			// Get IP
+			xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
+			clientIP, _, _ := strings.Cut(xForwardedFor, ",")
+			xCookieDomain = strings.TrimSpace(clientIP)
+		} else {
+			// Get FQDN
+			xForwardedHost := c.Request.Header.Get("X-Forwarded-Host")
+			clientFQDN, _, _ := strings.Cut(xForwardedHost, ",")
+			xCookieDomain = strings.TrimSpace(clientFQDN)
+		}
+
+		// Get port
+		_, port, err := net.SplitHostPort(conf.CookieDomain)
+		if err != nil && port != "" {
+			xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
+			xCookieDomain = net.JoinHostPort(xCookieDomain, xForwardedPort)
+		}
+
+		cookieDomain := utils.ReplaceWildcards(conf.CookieDomain, xCookieDomain)
+
+		log := utils.LogFromContext(c)
+		log.Info("Rewrote cookieDomain '%s' -> '%s'", conf.CookieDomain, cookieDomain)
+
+		conf.CookieDomain = cookieDomain
 	}
 }
 

@@ -174,7 +174,7 @@ func (s *Server) initAppServer(log *slog.Logger) (err error) {
 
 	// Auth routes
 	// For the root route, we add it with and without trailing slash (in case BasePath isn't empty) to avoid Gin setting up a 301 (Permanent) redirect, which causes issues with forward auth
-	appRoutes := s.appRouter.Group(conf.BasePath, s.MiddlewareProxyHeaders)
+	appRoutes := s.appRouter.Group(conf.BasePath, s.MiddlewareProxyHeaders, s.MiddlewareWildcards)
 	switch provider := s.auth.(type) {
 	case auth.OAuth2Provider:
 		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetOAuth2Root(provider))

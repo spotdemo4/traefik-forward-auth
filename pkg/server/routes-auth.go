@@ -106,6 +106,12 @@ func (s *Server) RouteGetOAuth2Callback(provider auth.OAuth2Provider) func(c *gi
 			return
 		}
 
+		// Set authorization header
+		config := config.Get()
+		if config.AuthHeader != "" {
+			c.Header("Authorization", config.AuthHeader)
+		}
+
 		// Use a custom redirect code to write a response in the body
 		// We use a 307 redirect here so the client can re-send the request with the original method
 		c.Header("Location", returnURL)

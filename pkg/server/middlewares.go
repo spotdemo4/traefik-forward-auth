@@ -114,7 +114,7 @@ func (s *Server) MiddlewareWildcards(c *gin.Context) {
 		hostname := utils.ReplaceWildcards(conf.Hostname, xHostname)
 
 		log := utils.LogFromContext(c)
-		log.Info("Rewrote hostname '%s' -> '%s'", conf.Hostname, hostname)
+		log.Info("Rewrote hostname", conf.Hostname, hostname)
 
 		conf.Hostname = hostname
 	}
@@ -143,7 +143,7 @@ func (s *Server) MiddlewareWildcards(c *gin.Context) {
 		cookieDomain := utils.ReplaceWildcards(conf.CookieDomain, xCookieDomain)
 
 		log := utils.LogFromContext(c)
-		log.Info("Rewrote cookieDomain '%s' -> '%s'", conf.CookieDomain, cookieDomain)
+		log.Info("Rewrote cookieDomain", conf.CookieDomain, cookieDomain)
 
 		conf.CookieDomain = cookieDomain
 	}

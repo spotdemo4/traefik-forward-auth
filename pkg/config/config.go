@@ -63,6 +63,9 @@ type Config struct {
 	// Note: this does not apply to /api and /healthz routes
 	BasePath string `env:"BASEPATH" yaml:"basePath"`
 
+	// Authorization header to use for requests to the upstream service.
+	AuthHeader string `env:"AUTHHEADER" yaml:"authHeader"`
+
 	// Controls log level and verbosity. Supported values: `debug`, `info` (default), `warn`, `error`.
 	// +default info
 	LogLevel string `env:"LOGLEVEL" yaml:"logLevel"`

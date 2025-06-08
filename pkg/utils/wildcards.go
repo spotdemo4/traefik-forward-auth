@@ -4,7 +4,7 @@ func ReplaceWildcards(template, replacement string) (result string) {
 	for i := range template {
 		ri := template[len(template)-1-i]
 
-		if len(replacement) <= 0 {
+		if len(replacement) == 0 {
 			result = string(ri) + result
 			continue
 		}

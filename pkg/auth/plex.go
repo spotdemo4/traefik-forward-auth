@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -109,9 +108,6 @@ func (a *Plex) PlexRetrievePin() (pin PlexPin, err error) {
 		"X-Plex-Client-Identifier": []string{a.clientID},
 	}.Encode()
 
-	log := slog.Default()
-	log.Info("Sending", "req", formReq)
-
 	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins", strings.NewReader(formReq))
 	if err != nil {
 		return pin, err
@@ -129,8 +125,6 @@ func (a *Plex) PlexRetrievePin() (pin PlexPin, err error) {
 	if err != nil {
 		return pin, err
 	}
-
-	log.Info("Received", "resp", string(body))
 
 	err = json.Unmarshal(body, &pin)
 	if err != nil {
@@ -228,9 +222,6 @@ func (a *Plex) PlexRetrieveProfile(token string) (*user.Profile, error) {
 		"X-Plex-Client-Identifier": []string{a.clientID},
 	}.Encode()
 
-	log := slog.Default()
-	log.Info("Sending", "req", formReq)
-
 	req, err := http.NewRequest("GET", "https://plex.tv/api/v2/user", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
@@ -248,8 +239,6 @@ func (a *Plex) PlexRetrieveProfile(token string) (*user.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Info("Received", "resp", body)
 
 	type plexUser struct {
 		Username string `json:"username"`

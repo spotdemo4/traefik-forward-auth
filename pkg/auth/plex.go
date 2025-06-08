@@ -28,7 +28,7 @@ type Plex struct {
 }
 
 type PlexPin struct {
-	ID   string `json:"id"`
+	ID   int    `json:"id"`
 	Code string `json:"code"`
 }
 
@@ -136,7 +136,7 @@ func (a *Plex) PlexRetrievePin() (pin PlexPin, err error) {
 	if err != nil {
 		return pin, err
 	}
-	if pin.Code == "" || pin.ID == "" {
+	if pin.Code == "" || pin.ID == 0 {
 		return pin, fmt.Errorf("response did not contain pin: %s", string(body))
 	}
 
@@ -149,7 +149,7 @@ func (a *Plex) PlexRetrieveToken(pin PlexPin) (string, error) {
 		"X-Plex-Client-Identifier": []string{a.clientID},
 	}.Encode()
 
-	req, err := http.NewRequest("GET", "https://plex.tv/api/v2/pins/"+pin.ID, strings.NewReader(formReq))
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://plex.tv/api/v2/pins/%d", pin.ID), strings.NewReader(formReq))
 	if err != nil {
 		return "", err
 	}
@@ -299,7 +299,7 @@ func (a *Plex) PopulateAdditionalClaims(claims map[string]any, setClaimFn func(k
 }
 
 func (a *Plex) UserAllowed(profile *user.Profile) error {
-	// Default to allow all
+	// Allow all by default
 	if len(a.allowedUsers) == 0 && !a.allowFriends {
 		return nil
 	}

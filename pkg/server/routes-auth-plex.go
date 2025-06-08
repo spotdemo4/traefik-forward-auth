@@ -178,8 +178,8 @@ func (s *Server) getPlexCookie(c *gin.Context) (pin auth.PlexPin, returnURL stri
 
 	// Get the plex pin
 	idAny, _ := token.Get("id")
-	id, _ := idAny.(string)
-	if id == "" {
+	id, _ := idAny.(int)
+	if id == 0 {
 		return pin, "", errors.New("claim 'id' not found in JWT")
 	}
 	codeAny, _ := token.Get("code")

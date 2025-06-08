@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -128,7 +129,7 @@ func (s *Server) setPlexCookie(c *gin.Context, pin auth.PlexPin, returnURL strin
 		// Add 1 extra second to synchronize with cookie expiry
 		Expiration(now.Add(expiration+time.Second)).
 		NotBefore(now).
-		Claim("id", pin.ID).
+		Claim("id", strconv.Itoa(pin.ID)).
 		Claim("code", pin.Code).
 		Claim("return_url", returnURL).
 		Build()
@@ -178,8 +179,8 @@ func (s *Server) getPlexCookie(c *gin.Context) (pin auth.PlexPin, returnURL stri
 
 	// Get the plex pin
 	idAny, _ := token.Get("id")
-	id, _ := idAny.(int)
-	if id == 0 {
+	id, _ := idAny.(string)
+	if id == "" {
 		return pin, "", errors.New("claim 'id' not found in JWT")
 	}
 	codeAny, _ := token.Get("code")
@@ -187,8 +188,14 @@ func (s *Server) getPlexCookie(c *gin.Context) (pin auth.PlexPin, returnURL stri
 	if code == "" {
 		return pin, "", errors.New("claim 'code' not found in JWT")
 	}
+
+	intId, err := strconv.Atoi(id)
+	if err != nil {
+		return pin, "", err
+	}
+
 	pin = auth.PlexPin{
-		ID:   id,
+		ID:   intId,
 		Code: code,
 	}
 

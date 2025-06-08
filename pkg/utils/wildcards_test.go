@@ -13,9 +13,15 @@ func TestReplaceWildcards(t *testing.T) {
 	}{
 		{
 			name:     "Simple domain match",
-			template: "*.example.*",
+			template: "test.*.com",
 			actual:   "test.example.com",
 			want:     "test.example.com",
+		},
+		{
+			name:     "Domain with port",
+			template: "test.local:*",
+			actual:   "test.local:8080",
+			want:     "test.local:8080",
 		},
 		{
 			name:     "IPv4 with port",

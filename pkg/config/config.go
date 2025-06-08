@@ -298,10 +298,13 @@ type Dev struct {
 
 // Internal properties
 type internal struct {
-	instanceID       string
-	configFileLoaded string // Path to the config file that was loaded
-	tokenSigningKey  jwk.Key
-	pkceKey          []byte
+	instanceID           string
+	configFileLoaded     string // Path to the config file that was loaded
+	tokenSigningKey      jwk.Key
+	pkceKey              []byte
+	hasTemplate          bool
+	templateHostname     string
+	templateCookieDomain string
 }
 
 // String implements fmt.Stringer and prints out the config for debugging
@@ -328,6 +331,21 @@ func (c *Config) GetTokenSigningKey() jwk.Key {
 // GetInstanceID returns the instance ID.
 func (c *Config) GetInstanceID() string {
 	return c.internal.instanceID
+}
+
+// HasTemplate returns true if a template was provided
+func (c *Config) HasTemplate() bool {
+	return c.internal.hasTemplate
+}
+
+// GetTemplateHostname returns the template for the hostname
+func (c *Config) GetTemplateHostname() string {
+	return c.internal.templateHostname
+}
+
+// GetTemplateCookieDomain returns the template for the cookieDomain
+func (c *Config) GetTemplateCookieDomain() string {
+	return c.internal.templateCookieDomain
 }
 
 // Validates the configuration and performs some sanitization
@@ -405,6 +423,16 @@ func (c *Config) Validate(logger *slog.Logger) error {
 	}
 	if c.AuthenticationTimeout < 5*time.Second {
 		return errors.New("property 'authenticationTimeout' is invalid: must be at least 5 seconds")
+	}
+
+	// Set template hostname & cookieDomain if they contain a wildcard
+	if strings.Contains(c.Hostname, "*") {
+		c.internal.templateHostname = c.Hostname
+		c.internal.hasTemplate = true
+	}
+	if strings.Contains(c.CookieDomain, "*") {
+		c.internal.templateCookieDomain = c.CookieDomain
+		c.internal.hasTemplate = true
 	}
 
 	return nil

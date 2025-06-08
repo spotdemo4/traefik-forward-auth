@@ -90,61 +90,62 @@ func (s *Server) MiddlewareProxyHeaders(c *gin.Context) {
 func (s *Server) MiddlewareWildcards(c *gin.Context) {
 	conf := config.Get()
 
-	if strings.Contains(conf.Hostname, "*") {
+	if !conf.HasTemplate() {
+		return
+	}
+
+	// Get IP
+	xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
+	clientIP, _, _ := strings.Cut(xForwardedFor, ",")
+	xForwardedFor = strings.TrimSpace(clientIP)
+
+	// Get FQDN
+	xForwardedHost := c.Request.Header.Get("X-Forwarded-Host")
+	clientFQDN, _, _ := strings.Cut(xForwardedHost, ",")
+	xForwardedHost = strings.TrimSpace(clientFQDN)
+
+	// Get port
+	xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
+
+	tHostname := conf.GetTemplateHostname()
+	if tHostname != "" {
 		var xHostname string
-		if validators.IsIP(conf.Hostname) {
-			// Get IP
-			xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
-			clientIP, _, _ := strings.Cut(xForwardedFor, ",")
-			xHostname = strings.TrimSpace(clientIP)
+		if validators.IsIP(tHostname) {
+			xHostname = xForwardedFor
 		} else {
-			// Get FQDN
-			xForwardedHost := c.Request.Header.Get("X-Forwarded-Host")
-			clientFQDN, _, _ := strings.Cut(xForwardedHost, ",")
-			xHostname = strings.TrimSpace(clientFQDN)
+			xHostname = xForwardedHost
 		}
 
-		_, port, err := net.SplitHostPort(conf.Hostname)
+		// Add port if exists in template
+		_, port, err := net.SplitHostPort(tHostname)
 		if err != nil && port != "" {
-			// Get port
-			xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
 			xHostname = net.JoinHostPort(xHostname, xForwardedPort)
 		}
 
-		hostname := utils.ReplaceWildcards(conf.Hostname, xHostname)
-
+		hostname := utils.ReplaceWildcards(tHostname, xHostname)
 		log := utils.LogFromContext(c)
-		log.Info("Rewrote hostname", conf.Hostname, hostname)
-
+		log.Info("Rewrote hostname", tHostname, hostname)
 		conf.Hostname = hostname
 	}
 
-	if strings.Contains(conf.CookieDomain, "*") {
+	tCookieDomain := conf.GetTemplateCookieDomain()
+	if tCookieDomain != "" {
 		var xCookieDomain string
-		if validators.IsIP(conf.CookieDomain) {
-			// Get IP
-			xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
-			clientIP, _, _ := strings.Cut(xForwardedFor, ",")
-			xCookieDomain = strings.TrimSpace(clientIP)
+		if validators.IsIP(tCookieDomain) {
+			xCookieDomain = xForwardedFor
 		} else {
-			// Get FQDN
-			xForwardedHost := c.Request.Header.Get("X-Forwarded-Host")
-			clientFQDN, _, _ := strings.Cut(xForwardedHost, ",")
-			xCookieDomain = strings.TrimSpace(clientFQDN)
+			xCookieDomain = xForwardedHost
 		}
 
-		// Get port
-		_, port, err := net.SplitHostPort(conf.CookieDomain)
+		// Add port if exists in template
+		_, port, err := net.SplitHostPort(tCookieDomain)
 		if err != nil && port != "" {
-			xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
 			xCookieDomain = net.JoinHostPort(xCookieDomain, xForwardedPort)
 		}
 
-		cookieDomain := utils.ReplaceWildcards(conf.CookieDomain, xCookieDomain)
-
+		cookieDomain := utils.ReplaceWildcards(tCookieDomain, xCookieDomain)
 		log := utils.LogFromContext(c)
-		log.Info("Rewrote cookieDomain", conf.CookieDomain, cookieDomain)
-
+		log.Info("Rewrote cookieDomain", tCookieDomain, cookieDomain)
 		conf.CookieDomain = cookieDomain
 	}
 }

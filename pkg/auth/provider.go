@@ -26,8 +26,8 @@ type PlexProvider interface {
 	Provider
 
 	PlexAuthorizeURL(code string, redirectURL string) (string, error)
-	PlexRetrievePin() (*PlexPin, error)
-	PlexRetrieveToken(pin *PlexPin) (string, error)
+	PlexRetrievePin() (PlexPin, error)
+	PlexRetrieveToken(pin PlexPin) (string, error)
 	PlexRetrieveProfile(token string) (*user.Profile, error)
 }
 

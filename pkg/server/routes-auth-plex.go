@@ -115,7 +115,7 @@ func (s *Server) PlexCallback(provider auth.PlexProvider) func(c *gin.Context) {
 	}
 }
 
-func (s *Server) setPlexCookie(c *gin.Context, pin *auth.PlexPin, returnURL string) (err error) {
+func (s *Server) setPlexCookie(c *gin.Context, pin auth.PlexPin, returnURL string) (err error) {
 	cfg := config.Get()
 	expiration := cfg.AuthenticationTimeout
 
@@ -151,18 +151,18 @@ func (s *Server) setPlexCookie(c *gin.Context, pin *auth.PlexPin, returnURL stri
 	return nil
 }
 
-func (s *Server) getPlexCookie(c *gin.Context) (pin *auth.PlexPin, returnURL string, err error) {
+func (s *Server) getPlexCookie(c *gin.Context) (pin auth.PlexPin, returnURL string, err error) {
 	cfg := config.Get()
 
 	// Get the cookie
 	cookieValue, err := c.Cookie(stateCookieNamePrefix + "plex")
 	if errors.Is(err, http.ErrNoCookie) {
-		return nil, "", nil
+		return pin, "", nil
 	} else if err != nil {
-		return nil, "", fmt.Errorf("failed to get cookie: %w", err)
+		return pin, "", fmt.Errorf("failed to get cookie: %w", err)
 	}
 	if cookieValue == "" {
-		return nil, "", fmt.Errorf("cookie %s is empty", cfg.CookieName)
+		return pin, "", fmt.Errorf("cookie %s is empty", cfg.CookieName)
 	}
 
 	// Parse the JWT in the cookie
@@ -173,21 +173,21 @@ func (s *Server) getPlexCookie(c *gin.Context) (pin *auth.PlexPin, returnURL str
 		jwt.WithKey(jwa.HS256, cfg.GetTokenSigningKey()),
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse JWT: %w", err)
+		return pin, "", fmt.Errorf("failed to parse JWT: %w", err)
 	}
 
 	// Get the plex pin
 	idAny, _ := token.Get("id")
 	id, _ := idAny.(string)
 	if id == "" {
-		return nil, "", errors.New("claim 'id' not found in JWT")
+		return pin, "", errors.New("claim 'id' not found in JWT")
 	}
 	codeAny, _ := token.Get("code")
 	code, _ := codeAny.(string)
 	if code == "" {
-		return nil, "", errors.New("claim 'code' not found in JWT")
+		return pin, "", errors.New("claim 'code' not found in JWT")
 	}
-	pin = &auth.PlexPin{
+	pin = auth.PlexPin{
 		ID:   id,
 		Code: code,
 	}
@@ -196,7 +196,7 @@ func (s *Server) getPlexCookie(c *gin.Context) (pin *auth.PlexPin, returnURL str
 	returnURLAny, _ := token.Get("return_url")
 	returnURL, _ = returnURLAny.(string)
 	if returnURL == "" {
-		return nil, "", errors.New("claim 'return_url' not found in JWT")
+		return pin, "", errors.New("claim 'return_url' not found in JWT")
 	}
 
 	return pin, returnURL, nil

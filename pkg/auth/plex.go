@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -101,7 +102,7 @@ func (a *Plex) PlexAuthorizeURL(code string, redirectURL string) (string, error)
 	return "https://app.plex.tv/auth#" + "?" + params.Encode(), nil
 }
 
-func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
+func (a *Plex) PlexRetrievePin() (pin PlexPin, err error) {
 	formReq := url.Values{
 		"strong":                   []string{"true"},
 		"X-Plex-Product":           []string{a.clientName},
@@ -113,34 +114,36 @@ func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
 
 	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins", strings.NewReader(formReq))
 	if err != nil {
-		return nil, err
+		return pin, err
 	}
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return pin, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return pin, err
 	}
 
 	log.Info("Received", "resp", string(body))
 
-	var pin *PlexPin
-	err = json.Unmarshal(body, pin)
+	err = json.Unmarshal(body, &pin)
 	if err != nil {
-		return nil, err
+		return pin, err
+	}
+	if pin.Code == "" || pin.ID == "" {
+		return pin, fmt.Errorf("response did not contain pin: %s", string(body))
 	}
 
 	return pin, err
 }
 
-func (a *Plex) PlexRetrieveToken(pin *PlexPin) (string, error) {
+func (a *Plex) PlexRetrieveToken(pin PlexPin) (string, error) {
 	formReq := url.Values{
 		"code":                     []string{pin.Code},
 		"X-Plex-Client-Identifier": []string{a.clientID},
@@ -172,9 +175,8 @@ func (a *Plex) PlexRetrieveToken(pin *PlexPin) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if token.Token == "" {
-		return "", errors.New("pin did not contain token")
+		return "", fmt.Errorf("response did not contain token: %s", string(body))
 	}
 
 	return token.Token, err
@@ -211,6 +213,9 @@ func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
 	err = json.Unmarshal(body, &friends)
 	if err != nil {
 		return nil, err
+	}
+	if len(friends) == 0 {
+		return nil, fmt.Errorf("response did not contain any friends: %s", string(body))
 	}
 
 	return friends, nil
@@ -257,6 +262,9 @@ func (a *Plex) PlexRetrieveProfile(token string) (*user.Profile, error) {
 	err = json.Unmarshal(body, &pUser)
 	if err != nil {
 		return nil, err
+	}
+	if pUser.Username == "" {
+		return nil, fmt.Errorf("response did not contain username: %s", string(body))
 	}
 
 	profile := user.Profile{

@@ -30,7 +30,6 @@ func (s *Server) RouteGetOAuth2Root(provider auth.OAuth2Provider) func(c *gin.Co
 		s.metrics.RecordAuthentication(true)
 		user := s.auth.UserIDFromProfile(profile)
 		c.Header("X-Forwarded-User", user)
-		c.Header("Authorization", config.Get().AuthHeader)
 		c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(`You're authenticated as '`+user+`'`))
 	}
 }
@@ -163,7 +162,6 @@ func (s *Server) RouteGetSeamlessAuthRoot(provider auth.SeamlessProvider) func(c
 		s.metrics.RecordAuthentication(true)
 		user := s.auth.UserIDFromProfile(profile)
 		c.Header("X-Forwarded-User", user)
-		c.Header("Authorization", config.Get().AuthHeader)
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		_, _ = c.Writer.WriteString("You're authenticated as '" + user + "'")
 	}

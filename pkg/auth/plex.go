@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -112,6 +113,9 @@ func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
 		return nil, err
 	}
 
+	log := slog.Default()
+	log.Info("Sending", "req", jsonReq)
+
 	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins", bytes.NewReader(jsonReq))
 	if err != nil {
 		return nil, err
@@ -128,6 +132,8 @@ func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Info("Received", "resp", string(body))
 
 	var pin *PlexPin
 	err = json.Unmarshal(body, pin)

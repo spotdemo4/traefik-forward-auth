@@ -188,7 +188,6 @@ func (s *Server) oAuth2RedirectToAuth(c *gin.Context, provider auth.OAuth2Provid
 	returnURL := getReturnURL(c)
 
 	// Each state cookie is unique per return URL
-	// This is
 	// This avoids issues when there's more than one browser tab that's trying to authenticate, for example because of some background refresh
 	stateCookieID := getStateCookieID(returnURL)
 
@@ -222,8 +221,7 @@ func (s *Server) oAuth2RedirectToAuth(c *gin.Context, provider auth.OAuth2Provid
 	c.Header("Location", authURL)
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.Writer.WriteHeader(http.StatusSeeOther)
-	_, _ = c.Writer.WriteString(`Redirecting to 
-	authentication server: ` + authURL)
+	_, _ = c.Writer.WriteString(`Redirecting to authentication server: ` + authURL)
 }
 
 func (s *Server) getProfileFromContext(c *gin.Context) *user.Profile {

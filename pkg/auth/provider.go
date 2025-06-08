@@ -22,6 +22,15 @@ type Provider interface {
 	UserAllowed(profile *user.Profile) error
 }
 
+type PlexProvider interface {
+	Provider
+
+	PlexAuthorizeURL(code string, redirectURL string) (string, error)
+	PlexRetrievePin() (*PlexPin, error)
+	PlexRetrieveToken(pin *PlexPin) (*PlexToken, error)
+	PlexRetrieveProfile(token *PlexToken) (*user.Profile, error)
+}
+
 // SeamlessProvider is the interface that represents an auth provider that performs authentication based on flows that do not require user action, such as network.
 type SeamlessProvider interface {
 	Provider

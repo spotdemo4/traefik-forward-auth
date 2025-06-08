@@ -1,5 +1,6 @@
 package utils
 
+// For each character in template, replace * with the corresponding value in replacement
 func ReplaceWildcards(template, replacement string) (result string) {
 	for i := range template {
 		ri := template[len(template)-1-i]

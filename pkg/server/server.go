@@ -176,6 +176,12 @@ func (s *Server) initAppServer(log *slog.Logger) (err error) {
 	// For the root route, we add it with and without trailing slash (in case BasePath isn't empty) to avoid Gin setting up a 301 (Permanent) redirect, which causes issues with forward auth
 	appRoutes := s.appRouter.Group(conf.BasePath, s.MiddlewareProxyHeaders, s.MiddlewareWildcards)
 	switch provider := s.auth.(type) {
+	case auth.PlexProvider:
+		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.PlexRoot(provider))
+		if conf.BasePath != "" {
+			appRoutes.GET("/", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.PlexCallback(provider))
+		}
+		appRoutes.GET("/oauth2/callback", codeFilterLogMw, s.PlexCallback(provider))
 	case auth.OAuth2Provider:
 		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetOAuth2Root(provider))
 		if conf.BasePath != "" {

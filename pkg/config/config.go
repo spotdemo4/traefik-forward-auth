@@ -158,6 +158,13 @@ type Config struct {
 	// +default 10s
 	AuthGitHubRequestTimeout time.Duration `env:"AUTHGITHUB_REQUESTTIMEOUT" yaml:"authGitHub_requestTimeout"`
 
+	AuthPlexClientID       string        `env:"AUTHPLEX_CLIENTID" yaml:"authPlex_clientID"`
+	AuthPlexClientName     string        `env:"AUTHPLEX_CLIENTNAME" yaml:"authPlex_clientName"`
+	AuthPlexToken          string        `env:"AUTHPLEX_TOKEN" yaml:"authPlex_token"`
+	AuthPlexServerID       string        `env:"AUTHPLEX_SERVERID" yaml:"authPlex_serverID"`
+	AuthPlexAllowedUsers   []string      `env:"AUTHPLEX_ALLOWEDUSERS" yaml:"authPlex_allowedUsers"`
+	AuthPlexRequestTimeout time.Duration `env:"AUTHPLEX_REQUESTTIMEOUT" yaml:"authPlex_requestTimeout"`
+
 	// Tenant ID for the Microsoft Entra ID auth application
 	// Ignored if `authProvider` is not `microsoftentraid`
 	AuthMicrosoftEntraIDTenantID string `env:"AUTHMICROSOFTENTRAID_TENANTID" yaml:"authMicrosoftEntraID_tenantID"`
@@ -505,6 +512,15 @@ func (c *Config) GetAuthProvider() (auth.Provider, error) {
 			AllowedTailnet: c.AuthTailscaleWhoisAllowedTailnet,
 			AllowedUsers:   c.AuthTailscaleWhoisAllowedUsers,
 			RequestTimeout: c.AuthTailscaleWhoisRequestTimeout,
+		})
+	case "plex":
+		return auth.NewPlex(auth.NewPlexOptions{
+			ClientID:       c.AuthPlexClientID,
+			ClientName:     c.AuthPlexClientName,
+			Token:          c.AuthPlexToken,
+			ServerID:       c.AuthPlexServerID,
+			AllowedUsers:   c.AuthPlexAllowedUsers,
+			RequestTimeout: c.AuthPlexRequestTimeout,
 		})
 	default:
 		return nil, fmt.Errorf("invalid value for 'authProvider': %s", c.AuthProvider)

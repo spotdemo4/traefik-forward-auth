@@ -70,7 +70,7 @@ func (s *Server) PlexCallback(provider auth.PlexProvider) func(c *gin.Context) {
 		// Get plex cookie
 		pin, returnURL, err := s.getPlexCookie(c)
 		if err != nil {
-			AbortWithError(c, NewResponseError(http.StatusUnauthorized, "Bad cookie"))
+			AbortWithError(c, NewResponseError(http.StatusUnauthorized, "Bad cookie: "+err.Error()))
 			return
 		}
 

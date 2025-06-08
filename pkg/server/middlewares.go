@@ -89,10 +89,11 @@ func (s *Server) MiddlewareProxyHeaders(c *gin.Context) {
 // MiddlewareWildcards is a middleware that replaces wildcard characters in the hostname & cookieDomain with values from headers.
 func (s *Server) MiddlewareWildcards(c *gin.Context) {
 	conf := config.Get()
-
 	if !conf.HasTemplate() {
 		return
 	}
+
+	log := utils.LogFromContext(c)
 
 	// Get IP
 	xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
@@ -123,9 +124,8 @@ func (s *Server) MiddlewareWildcards(c *gin.Context) {
 		}
 
 		hostname := utils.ReplaceWildcards(tHostname, xHostname)
-		log := utils.LogFromContext(c)
-		log.Info("Rewrote hostname", tHostname, hostname)
 		conf.Hostname = hostname
+		log.InfoContext(c, "Rewrote hostname", tHostname, hostname)
 	}
 
 	tCookieDomain := conf.GetTemplateCookieDomain()
@@ -144,9 +144,8 @@ func (s *Server) MiddlewareWildcards(c *gin.Context) {
 		}
 
 		cookieDomain := utils.ReplaceWildcards(tCookieDomain, xCookieDomain)
-		log := utils.LogFromContext(c)
-		log.Info("Rewrote cookieDomain", tCookieDomain, cookieDomain)
 		conf.CookieDomain = cookieDomain
+		log.InfoContext(c, "Rewrote cookieDomain", tCookieDomain, cookieDomain)
 	}
 }
 

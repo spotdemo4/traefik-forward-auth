@@ -72,7 +72,7 @@ func (s *Server) PlexCallback(provider auth.PlexProvider) func(c *gin.Context) {
 		// Get plex cookie
 		pin, returnURL, err := s.getPlexCookie(c)
 		if err != nil {
-			c.Error(fmt.Errorf("bad cookie: %w", err))
+			_ = c.Error(fmt.Errorf("bad cookie: %w", err))
 			AbortWithError(c, NewResponseError(http.StatusUnauthorized, "Bad cookie"))
 			return
 		}
@@ -97,7 +97,7 @@ func (s *Server) PlexCallback(provider auth.PlexProvider) func(c *gin.Context) {
 		// Check if the user is allowed per rules
 		err = provider.UserAllowed(profile)
 		if err != nil {
-			c.Error(fmt.Errorf("access denied per allowlist rules: %w", err))
+			_ = c.Error(fmt.Errorf("access denied per allowlist rules: %w", err))
 			AbortWithError(c, NewResponseError(http.StatusUnauthorized, "Access denied per allowlist rules"))
 			return
 		}

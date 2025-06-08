@@ -72,14 +72,25 @@ func NewPlex(opts NewPlexOptions) (*Plex, error) {
 	}
 	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
 
-	return &Plex{
+	plex := Plex{
 		clientID:     opts.ClientID,
+		clientName:   opts.ClientName,
 		token:        opts.Token,
 		allowFriends: opts.AllowFriends,
 		allowedUsers: opts.AllowedUsers,
 
 		httpClient: httpClient,
-	}, nil
+	}
+
+	// Validate token
+	_, err := plex.PlexRetrieveProfile(&PlexToken{
+		AuthToken: opts.Token,
+	})
+	if err != nil {
+		return nil, errors.New("invalid token for provider 'plex'")
+	}
+
+	return &plex, nil
 }
 
 func (a *Plex) PlexAuthorizeURL(code string, redirectURL string) (string, error) {

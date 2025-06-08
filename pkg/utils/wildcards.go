@@ -2,11 +2,12 @@ package utils
 
 func ReplaceWildcards(template, replacement string) (result string) {
 	for i := range template {
-		if len(replacement) == 0 {
-			break
-		}
-
 		ri := template[len(template)-1-i]
+
+		if len(replacement) == 0 {
+			result = string(ri) + result
+			continue
+		}
 
 		if ri == '*' {
 			count := 0

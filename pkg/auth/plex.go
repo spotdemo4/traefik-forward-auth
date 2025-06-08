@@ -146,7 +146,7 @@ func (a *Plex) PlexRetrieveToken(pin *PlexPin) (string, error) {
 		"X-Plex-Client-Identifier": []string{a.clientID},
 	}.Encode()
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins/"+pin.ID, strings.NewReader(formReq))
+	req, err := http.NewRequest("GET", "https://plex.tv/api/v2/pins/"+pin.ID, strings.NewReader(formReq))
 	if err != nil {
 		return "", err
 	}
@@ -189,7 +189,7 @@ func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
 		"X-Plex-Token": []string{a.token},
 	}.Encode()
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/friends", strings.NewReader(formReq))
+	req, err := http.NewRequest("GET", "https://plex.tv/api/v2/friends", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (a *Plex) PlexRetrieveProfile(token string) (*user.Profile, error) {
 	log := slog.Default()
 	log.Info("Sending", "req", formReq)
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/user", strings.NewReader(formReq))
+	req, err := http.NewRequest("GET", "https://plex.tv/api/v2/user", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/italypaleale/traefik-forward-auth/pkg/user"
@@ -20,7 +19,7 @@ type Plex struct {
 	clientID     string
 	clientName   string
 	token        string
-	serverID     string
+	allowFriends bool
 	allowedUsers []string
 
 	httpClient *http.Client
@@ -43,8 +42,8 @@ type NewPlexOptions struct {
 	ClientName string
 	// Plex Token
 	Token string
-	// Plex Server ID
-	ServerID string
+	// Allow plex friends
+	AllowFriends bool
 	// If non-empty, allows these user accounts only
 	AllowedUsers []string
 	// Request timeout; defaults to 10s
@@ -75,7 +74,7 @@ func NewPlex(opts NewPlexOptions) (*Plex, error) {
 	return &Plex{
 		clientID:     opts.ClientID,
 		token:        opts.Token,
-		serverID:     opts.ServerID,
+		allowFriends: opts.AllowFriends,
 		allowedUsers: opts.AllowedUsers,
 
 		httpClient: httpClient,
@@ -178,27 +177,22 @@ func (a *Plex) PlexRetrieveToken(pin *PlexPin) (*PlexToken, error) {
 	return token, err
 }
 
-type plexServers struct {
-	MediaContainer struct {
-		Server []struct {
-			Name              string `json:"name"`
-			MachineIdentifier string `json:"machineIdentifier"`
-		} `json:"Server"`
-	} `json:"MediaContainer"`
+type plexFriend struct {
+	Username string `json:"username"`
 }
 
-func (a *Plex) plexRetrieveServers(token *PlexToken) (*plexServers, error) {
+func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
 	type plexServersReq struct {
 		Token string `json:"X-Plex-Token"`
 	}
 	jsonReq, err := json.Marshal(plexServersReq{
-		Token: token.AuthToken,
+		Token: a.token,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/servers", bytes.NewReader(jsonReq))
+	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/friends", bytes.NewReader(jsonReq))
 	if err != nil {
 		return nil, err
 	}
@@ -215,13 +209,13 @@ func (a *Plex) plexRetrieveServers(token *PlexToken) (*plexServers, error) {
 		return nil, err
 	}
 
-	var servers *plexServers
-	err = json.Unmarshal(body, servers)
+	var friends []plexFriend
+	err = json.Unmarshal(body, &friends)
 	if err != nil {
 		return nil, err
 	}
 
-	return servers, nil
+	return friends, nil
 }
 
 func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
@@ -269,17 +263,6 @@ func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
 		return nil, err
 	}
 
-	// Also get servers
-	servers, err := a.plexRetrieveServers(token)
-	if err != nil {
-		return nil, err
-	}
-
-	serverClaims := map[string]string{}
-	for _, server := range servers.MediaContainer.Server {
-		serverClaims["server_"+server.Name] = server.MachineIdentifier
-	}
-
 	profile := user.Profile{
 		ID: pUser.Username,
 		Name: user.ProfileName{
@@ -288,9 +271,8 @@ func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
 		Email: &user.ProfileEmail{
 			Value: pUser.Email,
 		},
-		Picture:          pUser.Thumb,
-		Locale:           pUser.Locale,
-		AdditionalClaims: serverClaims,
+		Picture: pUser.Thumb,
+		Locale:  pUser.Locale,
 	}
 
 	return &profile, err
@@ -313,27 +295,29 @@ func (a *Plex) PopulateAdditionalClaims(claims map[string]any, setClaimFn func(k
 }
 
 func (a *Plex) UserAllowed(profile *user.Profile) error {
-	// Check allowed users
-	if len(a.allowedUsers) > 0 && !slices.Contains(a.allowedUsers, profile.ID) {
-		return errors.New("user ID is not in the allowlist")
+	// Default to allow all
+	if len(a.allowedUsers) == 0 && !a.allowFriends {
+		return nil
 	}
 
-	// Check server
-	if a.serverID != "" {
-		found := false
-		for k, v := range profile.AdditionalClaims {
-			if strings.HasPrefix(k, "server_") {
-				if v == a.serverID {
-					found = true
-					break
-				}
+	// Check allowed users
+	if slices.Contains(a.allowedUsers, profile.ID) {
+		return nil
+	}
+
+	// Check friends
+	if a.allowFriends {
+		friends, err := a.plexRetrieveFriends()
+		if err != nil {
+			return err
+		}
+
+		for _, friend := range friends {
+			if friend.Username == profile.ID {
+				return nil
 			}
 		}
-
-		if !found {
-			return errors.New("user does not belong to server")
-		}
 	}
 
-	return nil
+	return errors.New("could not authenticate user")
 }

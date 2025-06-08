@@ -161,7 +161,7 @@ type Config struct {
 	AuthPlexClientID       string        `env:"AUTHPLEX_CLIENTID" yaml:"authPlex_clientID"`
 	AuthPlexClientName     string        `env:"AUTHPLEX_CLIENTNAME" yaml:"authPlex_clientName"`
 	AuthPlexToken          string        `env:"AUTHPLEX_TOKEN" yaml:"authPlex_token"`
-	AuthPlexServerID       string        `env:"AUTHPLEX_SERVERID" yaml:"authPlex_serverID"`
+	AuthPlexAllowFriends   bool          `env:"AUTHPLEX_ALLOWFRIENDS" yaml:"authPlex_allowFriends"`
 	AuthPlexAllowedUsers   []string      `env:"AUTHPLEX_ALLOWEDUSERS" yaml:"authPlex_allowedUsers"`
 	AuthPlexRequestTimeout time.Duration `env:"AUTHPLEX_REQUESTTIMEOUT" yaml:"authPlex_requestTimeout"`
 
@@ -518,7 +518,7 @@ func (c *Config) GetAuthProvider() (auth.Provider, error) {
 			ClientID:       c.AuthPlexClientID,
 			ClientName:     c.AuthPlexClientName,
 			Token:          c.AuthPlexToken,
-			ServerID:       c.AuthPlexServerID,
+			AllowFriends:   c.AuthPlexAllowFriends,
 			AllowedUsers:   c.AuthPlexAllowedUsers,
 			RequestTimeout: c.AuthPlexRequestTimeout,
 		})

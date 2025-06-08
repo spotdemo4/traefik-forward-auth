@@ -6,17 +6,16 @@ import (
 
 func TestReplaceWildcards(t *testing.T) {
 	tests := []struct {
-		name      string
-		template  string
-		actual    string
-		want      string
-		shouldErr bool
+		name     string
+		template string
+		actual   string
+		want     string
 	}{
 		{
-			name:     "Simple domain suffix match",
-			template: "*.trev.*",
-			actual:   "test.test.trev.zip",
-			want:     "test.trev.zip",
+			name:     "Simple domain match",
+			template: "*.example.*",
+			actual:   "test.example.com",
+			want:     "test.example.com",
 		},
 		{
 			name:     "IPv4 with port",
@@ -26,9 +25,9 @@ func TestReplaceWildcards(t *testing.T) {
 		},
 		{
 			name:     "IPv6 with port",
-			template: "*:*:*:*:*:*:*:*:80",
+			template: "*:*:*:*:*:*:*:0001:80",
 			actual:   "2001:0db8:85a3:0000:0000:8a2e:0370:7334:80",
-			want:     "2001:0db8:85a3:0000:0000:8a2e:0370:7334:80",
+			want:     "2001:0db8:85a3:0000:0000:8a2e:0370:0001:80",
 		},
 		{
 			name:     "Exact match without wildcards",
@@ -41,6 +40,12 @@ func TestReplaceWildcards(t *testing.T) {
 			template: "*.example.com",
 			actual:   "abc.def.example.com",
 			want:     "def.example.com",
+		},
+		{
+			name:     "Overload front include",
+			template: "test.*.example.com",
+			actual:   "def.example.com",
+			want:     "test.def.example.com",
 		},
 	}
 

@@ -183,15 +183,15 @@ func (s *Server) initAppServer(log *slog.Logger) (err error) {
 		}
 		appRoutes.GET("/oauth2/callback", codeFilterLogMw, s.PlexCallback(provider))
 	case auth.OAuth2Provider:
-		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetOAuth2Root(provider))
+		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.OAuthRoot(provider))
 		if conf.BasePath != "" {
-			appRoutes.GET("/", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetOAuth2Root(provider))
+			appRoutes.GET("/", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.OAuthRoot(provider))
 		}
-		appRoutes.GET("/oauth2/callback", codeFilterLogMw, s.RouteGetOAuth2Callback(provider))
+		appRoutes.GET("/oauth2/callback", codeFilterLogMw, s.OAuthCallback(provider))
 	case auth.SeamlessProvider:
-		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetSeamlessAuthRoot(provider))
+		appRoutes.GET("", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.SeamlessRoot(provider))
 		if conf.BasePath != "" {
-			appRoutes.GET("/", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.RouteGetSeamlessAuthRoot(provider))
+			appRoutes.GET("/", s.MiddlewareRequireClientCertificate, s.MiddlewareLoadAuthCookie, s.SeamlessRoot(provider))
 		}
 	}
 	appRoutes.GET("profile", s.MiddlewareLoadAuthCookie, s.RouteGetProfile)

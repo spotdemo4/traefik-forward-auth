@@ -26,6 +26,7 @@ func (s *Server) PlexRoot(provider auth.PlexProvider) func(c *gin.Context) {
 			s.metrics.RecordAuthentication(true)
 			user := s.auth.UserIDFromProfile(profile)
 			c.Header("X-Forwarded-User", user)
+			c.Header("X-Forwarded-Email", profile.GetEmail())
 			c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(`You're authenticated as '`+user+`'`))
 			return
 		}
@@ -50,7 +51,7 @@ func (s *Server) PlexRoot(provider auth.PlexProvider) func(c *gin.Context) {
 		}
 
 		// Redirect to the authorization URL
-		authURL, err := provider.PlexAuthorizeURL(pin.Code, getOAuth2RedirectURI(c))
+		authURL, err := provider.PlexAuthorizeURL(pin.Code, getRedirectURI(c))
 		if err != nil {
 			AbortWithError(c, fmt.Errorf("failed to get authorize URL: %w", err))
 			return

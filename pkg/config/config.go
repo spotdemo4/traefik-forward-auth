@@ -409,6 +409,16 @@ func (c *Config) Validate(logger *slog.Logger) error {
 		}
 	}
 
+	// Set template hostname & cookieDomain if they contain a wildcard
+	if strings.Contains(c.Hostname, "*") {
+		c.internal.templateHostname = c.Hostname
+		c.internal.hasTemplate = true
+	}
+	if strings.Contains(c.CookieDomain, "*") {
+		c.internal.templateCookieDomain = c.CookieDomain
+		c.internal.hasTemplate = true
+	}
+
 	// Base path
 	if c.BasePath != "" && c.BasePath != "/" {
 		c.BasePath = strings.TrimSuffix(c.BasePath, "/")
@@ -423,16 +433,6 @@ func (c *Config) Validate(logger *slog.Logger) error {
 	}
 	if c.AuthenticationTimeout < 5*time.Second {
 		return errors.New("property 'authenticationTimeout' is invalid: must be at least 5 seconds")
-	}
-
-	// Set template hostname & cookieDomain if they contain a wildcard
-	if strings.Contains(c.Hostname, "*") {
-		c.internal.templateHostname = c.Hostname
-		c.internal.hasTemplate = true
-	}
-	if strings.Contains(c.CookieDomain, "*") {
-		c.internal.templateCookieDomain = c.CookieDomain
-		c.internal.hasTemplate = true
 	}
 
 	return nil

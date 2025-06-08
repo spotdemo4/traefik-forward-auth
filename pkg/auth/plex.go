@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/italypaleale/traefik-forward-auth/pkg/user"
@@ -87,7 +87,7 @@ func NewPlex(opts NewPlexOptions) (*Plex, error) {
 		AuthToken: opts.Token,
 	})
 	if err != nil {
-		return nil, errors.New("invalid token for provider 'plex'")
+		return nil, errors.New("invalid token for provider 'plex': " + err.Error())
 	}
 
 	return &plex, nil
@@ -108,31 +108,23 @@ func (a *Plex) PlexAuthorizeURL(code string, redirectURL string) (string, error)
 	return "https://app.plex.tv/auth#" + "?" + params.Encode(), nil
 }
 
-type plexPinReq struct {
-	Strong   bool   `json:"strong"`
-	Product  string `json:"X-Plex-Product"`
-	ClientID string `json:"X-Plex-Client-Identifier"`
-}
-
 func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
-	jsonReq, err := json.Marshal(plexPinReq{
-		Strong:   true,
-		Product:  a.clientName,
-		ClientID: a.clientID,
-	})
-	if err != nil {
-		return nil, err
-	}
+	formReq := url.Values{
+		"strong":                   []string{"true"},
+		"X-Plex-Product":           []string{a.clientName},
+		"X-Plex-Client-Identifier": []string{a.clientID},
+	}.Encode()
 
 	log := slog.Default()
-	log.Info("Sending", "req", jsonReq)
+	log.Info("Sending", "req", formReq)
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins", bytes.NewReader(jsonReq))
+	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -156,24 +148,18 @@ func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
 }
 
 func (a *Plex) PlexRetrieveToken(pin *PlexPin) (*PlexToken, error) {
-	type plexTokenReq struct {
-		Code     string `json:"code"`
-		ClientID string `json:"X-Plex-Client-Identifier"`
-	}
-	jsonReq, err := json.Marshal(plexTokenReq{
-		Code:     pin.Code,
-		ClientID: a.clientID,
-	})
+	formReq := url.Values{
+		"code":                     []string{pin.Code},
+		"X-Plex-Client-Identifier": []string{a.clientID},
+	}.Encode()
+
+	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins/"+pin.ID, strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins/"+pin.ID, bytes.NewReader(jsonReq))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -199,22 +185,17 @@ type plexFriend struct {
 }
 
 func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
-	type plexServersReq struct {
-		Token string `json:"X-Plex-Token"`
-	}
-	jsonReq, err := json.Marshal(plexServersReq{
-		Token: a.token,
-	})
+	formReq := url.Values{
+		"X-Plex-Token": []string{a.token},
+	}.Encode()
+
+	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/friends", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/friends", bytes.NewReader(jsonReq))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -236,26 +217,22 @@ func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
 }
 
 func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
-	type plexProfileReq struct {
-		Token    string `json:"X-Plex-Token"`
-		Product  string `json:"X-Plex-Product"`
-		ClientID string `json:"X-Plex-Client-Identifier"`
-	}
-	jsonReq, err := json.Marshal(plexProfileReq{
-		Token:    token.AuthToken,
-		Product:  a.clientName,
-		ClientID: a.clientID,
-	})
+	formReq := url.Values{
+		"X-Plex-Token":             []string{token.AuthToken},
+		"X-Plex-Product":           []string{a.clientName},
+		"X-Plex-Client-Identifier": []string{a.clientID},
+	}.Encode()
+
+	log := slog.Default()
+	log.Info("Sending", "req", formReq)
+
+	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/user", strings.NewReader(formReq))
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/user", bytes.NewReader(jsonReq))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -266,6 +243,8 @@ func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Info("Received", "resp", body)
 
 	type plexUser struct {
 		Username string `json:"username"`

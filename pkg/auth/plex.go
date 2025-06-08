@@ -31,11 +31,6 @@ type PlexPin struct {
 	Code string `json:"code"`
 }
 
-type PlexToken struct {
-	AuthToken string    `json:"authToken"`
-	ExpiresAt time.Time `json:"expiresAt"`
-}
-
 type NewPlexOptions struct {
 	// Client ID
 	ClientID string
@@ -83,9 +78,7 @@ func NewPlex(opts NewPlexOptions) (*Plex, error) {
 	}
 
 	// Validate token
-	_, err := plex.PlexRetrieveProfile(&PlexToken{
-		AuthToken: opts.Token,
-	})
+	_, err := plex.PlexRetrieveProfile(opts.Token)
 	if err != nil {
 		return nil, errors.New("invalid token for provider 'plex': " + err.Error())
 	}
@@ -147,7 +140,7 @@ func (a *Plex) PlexRetrievePin() (*PlexPin, error) {
 	return pin, err
 }
 
-func (a *Plex) PlexRetrieveToken(pin *PlexPin) (*PlexToken, error) {
+func (a *Plex) PlexRetrieveToken(pin *PlexPin) (string, error) {
 	formReq := url.Values{
 		"code":                     []string{pin.Code},
 		"X-Plex-Client-Identifier": []string{a.clientID},
@@ -155,29 +148,36 @@ func (a *Plex) PlexRetrieveToken(pin *PlexPin) (*PlexToken, error) {
 
 	req, err := http.NewRequest("POST", "https://plex.tv/api/v2/pins/"+pin.ID, strings.NewReader(formReq))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var token *PlexToken
-	err = json.Unmarshal(body, token)
+	type plexToken struct {
+		Token string `json:"authToken"`
+	}
+	var token plexToken
+	err = json.Unmarshal(body, &token)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return token, err
+	if token.Token == "" {
+		return "", errors.New("pin did not contain token")
+	}
+
+	return token.Token, err
 }
 
 type plexFriend struct {
@@ -216,9 +216,9 @@ func (a *Plex) plexRetrieveFriends() ([]plexFriend, error) {
 	return friends, nil
 }
 
-func (a *Plex) PlexRetrieveProfile(token *PlexToken) (*user.Profile, error) {
+func (a *Plex) PlexRetrieveProfile(token string) (*user.Profile, error) {
 	formReq := url.Values{
-		"X-Plex-Token":             []string{token.AuthToken},
+		"X-Plex-Token":             []string{token},
 		"X-Plex-Product":           []string{a.clientName},
 		"X-Plex-Client-Identifier": []string{a.clientID},
 	}.Encode()

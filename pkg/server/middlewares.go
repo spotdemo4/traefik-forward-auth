@@ -58,6 +58,7 @@ func (s *Server) MiddlewareProxyHeaders(c *gin.Context) {
 	// Get the X-Forwarded-For header
 	xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
 	xForwardedPort := c.Request.Header.Get("X-Forwarded-Port")
+	xForwardedProto := c.Request.Header.Get("X-Forwarded-Proto")
 
 	// Split the X-Forwarded-For header to get the originating client IP
 	clientIP, _, _ := strings.Cut(xForwardedFor, ",")
@@ -71,11 +72,11 @@ func (s *Server) MiddlewareProxyHeaders(c *gin.Context) {
 	}
 
 	// Validate X-Forwarded-Proto
-	switch c.Request.Header.Get("X-Forwarded-Proto") {
-	case "http", "https":
+	switch xForwardedProto {
+	case "http", "https", "ws", "wss":
 		// All good
 	default:
-		AbortWithError(c, NewResponseError(http.StatusBadRequest, "Invalid value for the 'X-Forwarded-Proto' header: must be 'http' or 'https'"))
+		AbortWithError(c, NewResponseErrorf(http.StatusBadRequest, "Invalid value for the 'X-Forwarded-Proto' header: %s", xForwardedProto))
 		return
 	}
 
